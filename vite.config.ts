@@ -4,16 +4,8 @@ import tailwindcss from '@tailwindcss/vite';
 
 export default defineConfig({
   plugins: [react(), tailwindcss()],
-  build: {
-    rollupOptions: {
-      output: {
-        manualChunks: {
-          three: ['three'],
-          gsap: ['gsap'],
-        },
-      },
-    },
-  },
+  // No manual chunking: the scene is lazy-imported, so three lands in its
+  // own chunk on its own and never enters the initial bundle.
   test: {
     environment: 'node',
     include: ['src/**/*.test.ts'],
