@@ -11,7 +11,8 @@ import {
   WebGLRenderer,
 } from 'three';
 import { FRAGMENT_SHADER, VERTEX_SHADER } from './moneyFlow.glsl';
-import { useScrollStore } from '../state/useScrollStore';
+import { useAssumptions } from '../state/useAssumptions';
+import { clamp, computeBreakEven } from '../lib/model';
 import { useReducedMotion } from '../lib/useReducedMotion';
 
 /*
@@ -56,11 +57,16 @@ function buildGeometry(count: number): BufferGeometry {
 
 /**
  * The cinematic layer: a fixed, non-interactive particle field behind the
- * content. It reads scroll straight from the store inside its own rAF, so
- * scrolling never triggers a React render on account of the canvas.
+ * content, bound to the model rather than to scroll — the further today's
+ * price is from covering the bill, the faster and hotter the field runs, and
+ * past the halfway mark the stream reverses from "capital going in" to
+ * "capital owed back".
  *
- * It is strictly decorative. Under reduced motion, or with no WebGL
- * context available, it renders nothing at all and the page is unaffected.
+ * It reads the store inside its own rAF via getState(), so dragging a slider
+ * never triggers a React render on account of the canvas.
+ *
+ * It is strictly decorative. Under reduced motion, or with no WebGL context
+ * available, it renders nothing at all and the page is unaffected.
  */
 export function SceneCanvas() {
   const ref = useRef<HTMLCanvasElement>(null);
@@ -148,19 +154,17 @@ export function SceneCanvas() {
       const dt = Math.min(0.05, (now - last) / 1000);
       last = now;
 
-      const { chapter, progress } = useScrollStore.getState();
+      const { assumptions, referencePrice } = useAssumptions.getState();
+      const multiple = computeBreakEven(assumptions, referencePrice)
+        .multipleOfCurrentPrice;
 
-      // Intro is quiet, the timeline fills, the reveal turns the flow around,
-      // and the calculator hands the screen back to the controls.
-      const targetPhase = chapter === 'gap' ? progress : chapter === 'intro' ? 0 : 0.08;
-      const targetIntensity =
-        chapter === 'intro'
-          ? 0.55
-          : chapter === 'timeline'
-            ? 0.45 + progress * 0.55
-            : chapter === 'gap'
-              ? 1.0
-              : 0.18;
+      // Log-scaled: the multiple spans 1x to several hundred across the slider
+      // ranges, so a linear map would sit pinned at the top almost everywhere.
+      // 1x reads as calm, 100x as full tilt.
+      const pressure = clamp(Math.log10(Math.max(1, multiple)) / 2, 0, 1);
+
+      const targetPhase = pressure;
+      const targetIntensity = 0.45 + pressure * 0.55;
 
       phase += (targetPhase - phase) * Math.min(1, dt * 2.5);
       intensity += (targetIntensity - intensity) * Math.min(1, dt * 2.5);

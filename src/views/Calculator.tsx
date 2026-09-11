@@ -1,8 +1,19 @@
 import { Slider } from '../components/Slider';
 import { GapBars } from '../charts/GapBars';
+import { SensitivityChart } from '../charts/SensitivityChart';
+import { AnimatedCounter } from '../charts/AnimatedCounter';
+import { SourceTag } from '../components/SourceTag';
 import { useAssumptions, useBreakEven } from '../state/useAssumptions';
 import { formatCompactUsd, formatMultiple, formatUsd } from '../lib/model';
-import { BASELINE, CUMULATIVE_CAPEX_USD, REFERENCE_PRICE } from '../data';
+import {
+  BASELINE,
+  BIG_FIVE_CAPEX_SOURCE,
+  CUMULATIVE_CAPEX_USD,
+  GLOBAL_AI_USERS,
+  PAID_CONVERSION_RATE,
+
+  REFERENCE_PRICE_PER_MONTH,
+} from '../data';
 
 const BILLION = 1e9;
 const MILLION = 1e6;
@@ -16,8 +27,8 @@ const people = (n: number) =>
  * is wrong in someone's opinion — so the reader gets the controls. Nothing
  * is pinned: this one is meant to be sat with.
  */
-export function Chapter3Calculator() {
-  const { assumptions, set, reset, isPristine } = useAssumptions();
+export function Calculator() {
+  const { assumptions, referencePrice, set, reset, isPristine } = useAssumptions();
   const r = useBreakEven();
   const pristine = isPristine();
 
@@ -25,17 +36,24 @@ export function Chapter3Calculator() {
     assumptions[k] !== BASELINE[k];
 
   return (
-    <section id="calculator" className="w-full px-6 py-24">
-      <div className="mx-auto w-full max-w-5xl">
-        <h2 className="text-3xl font-semibold sm:text-4xl">Disagree with me.</h2>
+    <section id="calculator" className="w-full px-6 py-12 sm:py-16">
+      <div className="mx-auto w-full max-w-6xl">
+        <p className="text-xs uppercase tracking-[0.2em] text-[var(--color-muted)]">
+          The bill for the boom
+        </p>
+        <h1 className="mt-3 text-3xl font-semibold sm:text-4xl">Disagree with me.</h1>
         <p className="mt-4 max-w-2xl text-[var(--color-ink-2)]">
-          Every number above is an assumption someone can argue with. These are
-          the ones that matter. Move them and watch the answer move.
+          Roughly {formatCompactUsd(CUMULATIVE_CAPEX_USD)} has gone into building
+          AI infrastructure
+          <SourceTag source={BIG_FIVE_CAPEX_SOURCE.source} asOf={BIG_FIVE_CAPEX_SOURCE.asOf} />.
+          This works out what a paying user would owe for it to come back. Every
+          input is an assumption someone can argue with — move them and watch
+          the answer move.
         </p>
 
-        <div className="mt-10 grid gap-10 lg:grid-cols-2">
+        <div className="mt-10 grid gap-10 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)]">
           <div className="rounded-xl border border-[var(--color-hairline)] bg-[var(--color-surface)] p-6">
-            <div className="flex items-center justify-between border-b border-[var(--color-hairline)] pb-4">
+            <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 border-b border-[var(--color-hairline)] pb-4">
               <h3 className="text-sm font-semibold uppercase tracking-wider text-[var(--color-muted)]">
                 Assumptions
               </h3>
@@ -43,7 +61,7 @@ export function Chapter3Calculator() {
                 type="button"
                 onClick={reset}
                 disabled={pristine}
-                className="rounded-md border border-[var(--color-hairline)] px-3 py-1.5 text-xs text-[var(--color-ink-2)] transition-colors hover:bg-[var(--color-surface-2)] disabled:cursor-not-allowed disabled:opacity-40"
+                className="shrink-0 whitespace-nowrap rounded-md border border-[var(--color-hairline)] px-3 py-1.5 text-xs text-[var(--color-ink-2)] transition-colors hover:bg-[var(--color-surface-2)] disabled:cursor-not-allowed disabled:opacity-40"
               >
                 ↻ Reset to researched values
               </button>
@@ -119,25 +137,62 @@ export function Chapter3Calculator() {
             </div>
           </div>
 
-          <div>
+          <div className="flex flex-col gap-8">
             <Result r={r} />
-            <div className="mt-10">
+
+            <div className="rounded-xl border border-[var(--color-hairline)] bg-[var(--color-surface)] p-6">
+              <SensitivityChart assumptions={assumptions} referencePrice={referencePrice} />
+            </div>
+
+            <div className="rounded-xl border border-[var(--color-hairline)] bg-[var(--color-surface)] p-6">
               <GapBars
-                paidPerYear={REFERENCE_PRICE * 12}
+                paidPerYear={referencePrice * 12}
                 neededPerYear={r.perPayingUserPerYear}
                 neededLabel="Needed, per paying user"
               />
             </div>
+
             {!pristine && (
-              <p className="mt-6 text-xs text-[var(--color-muted)]">
+              <p className="text-xs text-[var(--color-muted)]">
                 You have changed the assumptions. These are your numbers now,
                 not the researched ones.
               </p>
             )}
           </div>
         </div>
+        <SourcesFooter />
       </div>
     </section>
+  );
+}
+
+const CITED = [
+  { what: 'Capital spent', s: BIG_FIVE_CAPEX_SOURCE },
+  { what: 'User count', s: GLOBAL_AI_USERS },
+  { what: 'Paid conversion', s: PAID_CONVERSION_RATE },
+  { what: 'Price charged', s: REFERENCE_PRICE_PER_MONTH },
+] as const;
+
+/**
+ * The defaults are researched, so the page has to say where they came from
+ * even now that the long-form sources table is gone.
+ */
+function SourcesFooter() {
+  return (
+    <footer className="mt-12 border-t border-[var(--color-hairline)] pt-6">
+      <p className="text-xs leading-relaxed text-[var(--color-muted)]">
+        A break-even thought experiment, not a forecast — it assumes the money
+        has to come back from users at all. Capital figures are total capex, not
+        AI-only; revenue is annualized run-rate. Defaults:{' '}
+        {CITED.map(({ what, s }, i) => (
+          <span key={what}>
+            {i > 0 && ' · '}
+            {what}
+            <SourceTag source={s.source} asOf={s.asOf} />
+          </span>
+        ))}
+      </p>
+    </footer>
   );
 }
 
@@ -146,7 +201,9 @@ function Result({ r }: { r: ReturnType<typeof useBreakEven> }) {
     <div className="rounded-xl border border-[var(--color-hairline)] bg-[var(--color-surface)] p-6">
       <div className="text-sm text-[var(--color-muted)]">Per paying user</div>
       <div className="tabular mt-2 text-5xl font-semibold text-[var(--color-series-2)]">
-        {formatUsd(r.perPayingUserPerMonth)}
+        {/* No tween: this tracks a dragging thumb, and easing toward a target
+            that moves every frame just reads as lag. */}
+        <AnimatedCounter value={r.perPayingUserPerMonth} format={formatUsd} duration={0} />
         <span className="text-xl font-normal text-[var(--color-muted)]"> / mo</span>
       </div>
 
@@ -155,7 +212,9 @@ function Result({ r }: { r: ReturnType<typeof useBreakEven> }) {
         <Cell label="Per active user, per day" value={formatUsd(r.perUserPerDay, { cents: true })} />
         <Cell
           label="Multiple of today's price"
-          value={formatMultiple(r.perPayingUserPerYear / (REFERENCE_PRICE * 12))}
+          value={formatMultiple(
+            r.perPayingUserPerYear / (r.currentPricePerMonth * 12),
+          )}
         />
         <Cell
           label="Annual shortfall, everyone"

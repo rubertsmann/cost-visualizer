@@ -32,11 +32,27 @@ export function useChartDims(
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
+
+    // Measure once, synchronously. ResizeObserver is the mechanism for
+    // *changes*, but there are embedding contexts where its callback never
+    // arrives at all -- and without a first measurement the chart renders
+    // nothing rather than rendering at the wrong size.
+    const measure = () => setWidth(el.getBoundingClientRect().width);
+    measure();
+
     const ro = new ResizeObserver(([entry]) => {
       if (entry) setWidth(entry.contentRect.width);
     });
     ro.observe(el);
-    return () => ro.disconnect();
+
+    // Belt and braces for the same case: a window resize still re-measures
+    // even where the observer is silent.
+    window.addEventListener('resize', measure);
+
+    return () => {
+      ro.disconnect();
+      window.removeEventListener('resize', measure);
+    };
   }, []);
 
   const height = Math.min(maxHeight, Math.max(220, width * aspect));
