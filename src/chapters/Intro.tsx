@@ -1,4 +1,4 @@
-import { REFERENCE_PRICE_PER_MONTH } from '../data';
+import { BIG_FIVE_CAPEX_SOURCE, REFERENCE_PRICE_PER_MONTH } from '../data';
 import { SourceTag } from '../components/SourceTag';
 
 export function Intro() {
@@ -20,7 +20,10 @@ export function Intro() {
         <p className="mt-8 max-w-xl text-lg leading-relaxed text-[var(--color-ink-2)]">
           Building the thing you pay for has cost, so far, more than a trillion
           dollars
-          <SourceTag source={REFERENCE_PRICE_PER_MONTH.source} asOf={REFERENCE_PRICE_PER_MONTH.asOf} />.
+          <SourceTag
+            source={BIG_FIVE_CAPEX_SOURCE.source}
+            asOf={BIG_FIVE_CAPEX_SOURCE.asOf}
+          />.
           Someone has to earn that back.
         </p>
 
