@@ -30,7 +30,7 @@ export function CapexChart({ progress }: Props) {
   const [ref, dims] = useChartDims(MARGIN, 0.46);
   const { innerWidth, innerHeight } = dims;
 
-  const { x, y, capexArea, capexLine, openaiLine, anthropicLine, xTicks, yTicks } =
+  const { x, y, capexArea, capexLine, openaiLine, anthropicLine, xTicks, yTicks, endLabels } =
     useMemo(() => {
       const x = scaleTime()
         .domain([new Date(Date.UTC(2022, 0, 1)), new Date(Date.UTC(2026, 11, 31))])
@@ -65,6 +65,38 @@ export function CapexChart({ progress }: Props) {
         anthropicLine: arr(ANTHROPIC_ARR as DatedPoint[]) ?? '',
         xTicks: [2022, 2023, 2024, 2025, 2026].map(midYear),
         yTicks: y.ticks(5),
+        // The revenue lines sit almost on the baseline against a $800B axis.
+        // That flatness IS the finding, so rather than rescale it away, label
+        // the ends directly — otherwise a reader sees two lines and no values.
+        endLabels: [
+          { d: BIG_FIVE_CAPEX.at(-1), color: 'var(--color-series-1)', dy: -10 },
+        ]
+          .filter((e) => e.d)
+          .map((e) => ({
+            x: x(midYear(e.d!.year)),
+            y: y(e.d!.usd),
+            label: formatCompactUsd(e.d!.usd),
+            color: e.color,
+            dy: e.dy,
+          }))
+          .concat(
+            (
+              [
+                // Offsets follow the values: the lower line labels below,
+                // the higher one above, so the pair never crosses.
+                { p: OPENAI_ARR.at(-1), color: 'var(--color-series-2)', dy: 18 },
+                { p: ANTHROPIC_ARR.at(-1), color: 'var(--color-series-3)', dy: -10 },
+              ] as const
+            )
+              .filter((e) => e.p)
+              .map((e) => ({
+                x: x(parse(e.p!)),
+                y: y(e.p!.usd),
+                label: formatCompactUsd(e.p!.usd),
+                color: e.color,
+                dy: e.dy,
+              })),
+          ),
       };
     }, [innerWidth, innerHeight]);
 
@@ -121,6 +153,30 @@ export function CapexChart({ progress }: Props) {
                 strokeWidth={2}
                 strokeLinecap="round"
               />
+              {endLabels.map((e) => (
+                <g key={e.label + e.color}>
+                  {/* 2px surface ring keeps the dot legible where lines overlap. */}
+                  <circle
+                    cx={e.x}
+                    cy={e.y}
+                    r={4}
+                    fill={e.color}
+                    stroke="var(--color-plane)"
+                    strokeWidth={2}
+                  />
+                  <text
+                    x={e.x}
+                    y={e.y + e.dy}
+                    textAnchor="end"
+                    className="tabular"
+                    fill={e.color}
+                    fontSize={13}
+                    fontWeight={600}
+                  >
+                    {e.label}
+                  </text>
+                </g>
+              ))}
             </g>
 
             <XAxis

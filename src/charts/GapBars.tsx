@@ -18,6 +18,10 @@ const RADIUS = 4;
  * Two bars, one axis, anchored to a shared baseline at zero. The whole
  * argument of the page is the ratio between their lengths, so nothing else
  * competes for attention here.
+ *
+ * No CSS transition on the width: both callers already drive this
+ * continuously (scroll scrub, slider input), so a transition only adds lag
+ * behind the pointer and leaves the bar reading a stale value mid-flight.
  */
 export function GapBars({ paidPerYear, neededPerYear, neededLabel, progress = 1 }: Props) {
   const grown = neededPerYear * progress;
@@ -50,7 +54,6 @@ export function GapBars({ paidPerYear, neededPerYear, neededLabel, progress = 1 
                 width: `${Math.max(0, Math.min(100, (r.value / max) * 100))}%`,
                 backgroundColor: r.color,
                 borderRadius: RADIUS,
-                transition: 'width 120ms linear',
               }}
             />
           </div>

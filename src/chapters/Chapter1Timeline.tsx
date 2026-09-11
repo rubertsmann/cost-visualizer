@@ -52,7 +52,7 @@ export function Chapter1Timeline() {
             />
             <Stat
               label="Spent per revenue dollar"
-              value={`$${((LATEST?.usd ?? 0) / COMBINED_LAB_ARR_USD).toFixed(1)}`}
+              value={`$${((LATEST?.usd ?? 0) / COMBINED_LAB_ARR_USD).toFixed(2)}`}
               tone="var(--color-ink)"
             />
           </div>
