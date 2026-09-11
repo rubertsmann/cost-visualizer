@@ -1,3 +1,4 @@
+import { MotionToggle } from './components/MotionToggle';
 import { SceneCanvas } from './scene/SceneCanvas';
 import { Intro } from './chapters/Intro';
 import { Chapter1Timeline } from './chapters/Chapter1Timeline';
@@ -8,6 +9,7 @@ import { Outro } from './chapters/Outro';
 export default function App() {
   return (
     <div className="relative">
+      <MotionToggle />
       <SceneCanvas />
       <main className="relative z-10">
         <Intro />

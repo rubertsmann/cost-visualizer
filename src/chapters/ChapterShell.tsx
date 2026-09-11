@@ -55,7 +55,12 @@ export function ChapterShell({ id, scrub = 1.5, children, className = '' }: Prop
       },
     });
 
-    return () => trigger.kill();
+    // kill(true) reverts the pin spacer as well. Without the revert, toggling
+    // motion off would leave the spacer's scroll height behind as dead space.
+    return () => {
+      trigger.kill(true);
+      ScrollTrigger.refresh();
+    };
   }, [id, scrub, reduced]);
 
   return (
